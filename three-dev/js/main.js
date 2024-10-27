@@ -36,7 +36,7 @@ function init() {
   directionalLight.position.set(5, 5, 5);
   scene.add(directionalLight);
 
-  const ambientLight = new THREE.AmbientLight(0x404040); // soft white light
+  const ambientLight = new THREE.AmbientLight(0x404040);
   scene.add(ambientLight);
 
   // Orbit Controls
@@ -91,11 +91,10 @@ function createRocket() {
   rocketGroup.position.set(0, 1, 0);
   scene.add(rocketGroup);
 
-  rocket = rocketGroup; // Assign to global variable to animate later
+  rocket = rocketGroup;
 }
 
 function animate() {
-  // Optional: Rotate rocket slightly for a dynamic effect
   rocket.rotation.y += 0.01;
   rocket.rotation.x += 0.005;
 
