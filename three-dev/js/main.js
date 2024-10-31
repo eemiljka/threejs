@@ -3,7 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
 
-let container, camera, scene, renderer, rocket, controls;
+let container, camera, scene, renderer, controls;
 
 init();
 
@@ -17,16 +17,15 @@ function init() {
     1000
   );
 
-  renderer = new THREE.WebGLRenderer();
+  renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setAnimationLoop(animate);
   document.body.appendChild(renderer.domElement);
-
-  // Rocket creation
-  createRocket();
+  renderer.toneMapping = THREE.LinearToneMapping;
+  renderer.outputEncoding = THREE.sRGBEncoding;
 
   // Camera Position
-  camera.position.set(5, 5, 5);
+  camera.position.set(2, 2, 2);
 
   // Axis Helper
   const axesHelper = new THREE.AxesHelper(5);
@@ -43,63 +42,44 @@ function init() {
 
   // Orbit Controls
   controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
+  controls.enableDamping = false;
   controls.screenSpacePanning = false;
   controls.minDistance = 1;
   controls.maxDistance = 100;
+
+  loadmodels();
 }
 
-function createRocket() {
-  const rocketGroup = new THREE.Group(); // Group to hold all rocket parts
+function loadmodels() {
+  new RGBELoader()
+    .setPath("hdr/")
+    .load("kloppenheim_02_4k.hdr", function (texture) {
+      texture.mapping = THREE.EquirectangularReflectionMapping;
 
-  // Rocket Body (Cylinder)
-  const bodyGeometry = new THREE.CylinderGeometry(0.2, 0.2, 2, 32);
-  const bodyMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
-  const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-  rocketGroup.add(body);
+      scene.background = texture;
+      scene.environment = texture;
 
-  // Rocket Nose (Cone)
-  const noseGeometry = new THREE.ConeGeometry(0.2, 0.5, 32);
-  const noseMaterial = new THREE.MeshPhongMaterial({ color: 0xff0000 });
-  const nose = new THREE.Mesh(noseGeometry, noseMaterial);
-  nose.position.y = 1.25;
-  rocketGroup.add(nose);
+      console.log("HDR texture loaded");
 
-  // Rocket Fins (Cone)
-  const finGeometry = new THREE.BoxGeometry(0.1, 0.3, 0.02);
-  const finMaterial = new THREE.MeshPhongMaterial({ color: 0x0000ff });
+      // model
+      const loader = new GLTFLoader().setPath("scene2/");
+      loader.load("scene2.gltf", async function (gltf) {
+        const model = gltf.scene;
 
-  const fin1 = new THREE.Mesh(finGeometry, finMaterial);
-  fin1.position.set(0.15, -1, 0);
-  fin1.rotation.z = Math.PI / 4;
-  rocketGroup.add(fin1);
+        console.log("GLTF model loaded");
 
-  const fin2 = fin1.clone();
-  fin2.position.set(-0.15, -1, 0);
-  fin2.rotation.z = -Math.PI / 4;
-  rocketGroup.add(fin2);
+        // wait until the model can be added to the scene without blocking due to shader compilation
+        await renderer.compileAsync(model, camera, scene);
 
-  const fin3 = fin1.clone();
-  fin3.position.set(0, -1, 0.15);
-  fin3.rotation.x = Math.PI / 4;
-  rocketGroup.add(fin3);
+        model.position.set(0, 0, 0); // Adjust position if necessary
+        scene.add(model);
 
-  const fin4 = fin1.clone();
-  fin4.position.set(0, -1, -0.15);
-  fin4.rotation.x = -Math.PI / 4;
-  rocketGroup.add(fin4);
-
-  // Positioning the Rocket
-  rocketGroup.position.set(0, 1, 0);
-  scene.add(rocketGroup);
-
-  rocket = rocketGroup;
+        console.log("Model added to scene");
+      });
+    });
 }
 
 function animate() {
-  rocket.rotation.y += 0.01;
-  rocket.rotation.x += 0.005;
-
   controls.update();
   renderer.render(scene, camera);
 }
